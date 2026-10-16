@@ -1,9 +1,10 @@
-# SALIM AI V4.1
-Flask + OpenAI API chat, Hausa/English instructions, browser microphone support, and phone app shortcuts.
+# SALIM AI V4.2 — Gemini API
 
-## Render setup
-Open Render → salim-ai-dashboard → Environment. Add `OPENAI_API_KEY` with your own API key, save, and redeploy. Never put the key in GitHub, HTML, JavaScript, or a public chat. Check `/health` for `ai_configured: true`.
-
-Default model is `gpt-4o-mini`; you may change `OPENAI_MODEL` to a model enabled for your API account. API use may incur charges, and account billing/credits must be active.
-
-App links only request Android/browser to open an app; a web page cannot silently control arbitrary apps. Speech recognition depends on browser support and may use internet.
+- Gemini API powers the chat; default model is `gemini-3.8-flash`.
+- Hausa and English responses.
+- Browser microphone and Android/browser app shortcuts.
+- Keep `GEMINI_API_KEY` in Render Environment only; never commit it to GitHub.
+- Create a key at https://aistudio.google.com/apikey
+- In Render → `salim-ai-dashboard` → Environment, add `GEMINI_API_KEY` with your own key, then redeploy.
+- Free tier is subject to model availability, rate limits, quota and Google policies. Check AI Studio usage.
+- App shortcuts can request app opening but cannot silently control all phone apps.

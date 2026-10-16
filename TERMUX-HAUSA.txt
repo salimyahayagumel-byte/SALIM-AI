@@ -1,1 +1,1 @@
-SALIM AI V4.1: Bayan tura GitHub, je Render → salim-ai-dashboard → Environment. Ƙara OPENAI_API_KEY da key naka na sirri. Kada ka saka key a GitHub ko chat. Yi redeploy sannan ka duba /health.
+SALIM AI V4.2 GEMINI: Bayan push, je Render → salim-ai-dashboard → Environment. Ƙara GEMINI_API_KEY daga https://aistudio.google.com/apikey. Kada ka saka key a GitHub ko ka turo shi a chat. Yi redeploy sannan ka duba /health.

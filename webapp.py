@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.get("/")
 def index(): return render_template("index.html")
 @app.get("/health")
-def health(): return jsonify(service="SALIM AI", status="healthy", version="4.1.0", ai_configured=bool(os.getenv("OPENAI_API_KEY","").strip()))
+def health(): return jsonify(service="SALIM AI", status="healthy", version="4.2.0", ai_configured=bool(os.getenv("GEMINI_API_KEY","").strip()))
 @app.post("/api/chat")
 def chat():
     data=request.get_json(silent=True) or {}
