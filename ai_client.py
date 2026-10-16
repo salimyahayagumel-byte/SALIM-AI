@@ -12,7 +12,7 @@ def ask_gemini(messages):
     if not key:
         return "Ba a saita GEMINI_API_KEY ba. Ka saka Gemini API key a cikin .env sannan ka sake kunna SALIM AI."
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
     system_text = ""
     contents = []
     for item in messages:
