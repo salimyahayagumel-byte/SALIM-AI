@@ -1,39 +1,24 @@
-"""SALIM AI TERMINAL — local-response, no AI API key required."""
 import os
 from flask import Flask, jsonify, render_template, request
-from ai_client import local_reply
-
+from ai_client import generate_reply, AIConfigurationError, AIProviderError
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
-
 @app.get("/")
-def home():
-    return render_template("index.html")
-
+def index(): return render_template("index.html")
 @app.get("/health")
-def health():
-    return jsonify({"service": "SALIM AI TERMINAL", "status": "healthy", "mode": "local-no-api-key"})
-
+def health(): return jsonify(service="SALIM AI", status="healthy", version="4.1.0", ai_configured=bool(os.getenv("OPENAI_API_KEY","").strip()))
 @app.post("/api/chat")
 def chat():
-    data = request.get_json(silent=True) or {}
-    message = str(data.get("message", "")).strip()
-    language = str(data.get("language", "ha")).strip().lower()
-    if not message:
-        return jsonify({"ok": False, "reply": "Ban ji tambayarka ba. Ka sake magana.", "mode": "local"}), 400
-    if len(message) > 2000:
-        return jsonify({"ok": False, "reply": "Maganarka ta yi tsawo. Ka taƙaita ta, don Allah.", "mode": "local"}), 413
-    reply = local_reply(message, language)
-    return jsonify({"ok": True, "reply": reply, "mode": "local-no-api-key"})
-
-@app.errorhandler(404)
-def not_found(_error):
-    return jsonify({"ok": False, "error": "Ba a sami wannan adireshin ba."}), 404
-
-@app.errorhandler(500)
-def server_error(_error):
-    return jsonify({"ok": False, "error": "An samu matsalar cikin server."}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    data=request.get_json(silent=True) or {}
+    message=str(data.get("message","")).strip()
+    if not message: return jsonify(error="Rubuta tambaya tukuna."),400
+    if len(message)>12000: return jsonify(error="Tambayar ta yi tsawo sosai."),413
+    history=data.get("history",[])
+    if not isinstance(history,list): history=[]
+    history=[{"role":x["role"],"content":str(x.get("content",""))[:4000]} for x in history[-12:] if isinstance(x,dict) and x.get("role") in ("user","assistant")]
+    try: return jsonify(reply=generate_reply(message,history))
+    except AIConfigurationError as e: return jsonify(error=str(e),code="missing_api_key"),503
+    except AIProviderError as e: return jsonify(error=str(e),code="ai_provider_error"),502
+    except Exception:
+        app.logger.exception("Unexpected chat error")
+        return jsonify(error="An samu matsala wajen amsa. Ka sake gwadawa."),500
+if __name__=="__main__": app.run(host="0.0.0.0",port=int(os.getenv("PORT","10000")))

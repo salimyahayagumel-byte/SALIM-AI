@@ -1,6 +1,1 @@
-.env
-.venv/
-venv/
-__pycache__/
-*.pyc
-.history
+.env\n.env.*\n!.env.example\n.venv/\nvenv/\n__pycache__/\n*.py[cod]\n
