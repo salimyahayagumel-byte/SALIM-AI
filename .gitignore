@@ -1,1 +1,7 @@
-.env\n.env.*\n!.env.example\n.venv/\nvenv/\n__pycache__/\n*.py[cod]\n
+.env
+*.db
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.DS_Store

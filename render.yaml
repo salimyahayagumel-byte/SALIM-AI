@@ -3,12 +3,14 @@ services:
     name: salim-ai-dashboard
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --workers 1 --threads 4 --timeout 120 webapp:app
+    startCommand: gunicorn webapp:app --workers 1 --threads 4 --timeout 90
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
-      - key: GEMINI_MODEL
-        value: gemini-3.8-flash
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: APP_NAME
+        value: SALIM AI
