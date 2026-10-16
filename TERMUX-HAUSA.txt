@@ -20,3 +20,5 @@ SALIM AI V3.3 — UMARNIN HAUSA
 5. Don Render: duba README.md. Saka GEMINI_API_KEY da DASHBOARD_PASSWORD a Render Environment Variables.
 
 Microphone na dashboard yana aiki ta browser idan browser ya goyi bayan Speech Recognition, an ba shi izinin microphone, kuma shafin yana HTTPS (Render URL). Hausa speech recognition na iya bambanta da browser; ana iya amfani da rubutu idan ba ya aiki.
+
+V3.5 VOICE-ONLY: microphone-only dashboard; text input and send button removed.

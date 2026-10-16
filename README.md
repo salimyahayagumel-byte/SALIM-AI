@@ -25,3 +25,5 @@ Then open `http://127.0.0.1:5000`. Set `DASHBOARD_PASSWORD` in `.env` if you wan
 
 ## Important limitation
 Render cannot launch WhatsApp, TikTok, YouTube, or other native apps directly on a visitor's phone. It can return website links. Native app launching remains a local Termux/Android feature.
+
+V3.5 VOICE-ONLY: microphone-only dashboard; text input and send button removed.
