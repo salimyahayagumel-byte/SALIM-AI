@@ -6,14 +6,3 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 --timeout 120 webapp:app
     healthCheckPath: /health
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_MODEL
-        value: gemini-3.8-flash
-      - key: SYSTEM_PROMPT
-        value: "You are SALIM AI, a helpful bilingual assistant. Understand Hausa and English. Reply in the language the user uses. Be honest when unsure."
-      - key: DASHBOARD_PASSWORD
-        sync: false
-      - key: FLASK_SECRET_KEY
-        generateValue: true

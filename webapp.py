@@ -1,104 +1,39 @@
-"""SALIM AI web dashboard with browser microphone and speech output."""
+"""SALIM AI TERMINAL — local-response, no AI API key required."""
 import os
-import re
-from flask import Flask, request, session, redirect, url_for, render_template_string, jsonify
-from dotenv import load_dotenv
-from ai_client import ask_gemini
-from browser_actions import handle_command
+from flask import Flask, jsonify, render_template, request
+from ai_client import local_reply
 
-load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32).hex()
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
-PASSWORD = os.getenv("DASHBOARD_PASSWORD", "").strip()
-SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "You are SALIM AI, a helpful bilingual assistant. Understand Hausa and English. Reply in the language the user uses. Be honest when unsure.")
-
-HTML = r'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b1220"><title>SALIM AI | Voice Dashboard</title>
-<style>
-:root{color-scheme:dark;--bg:#0b1220;--panel:#121e31;--panel2:#17263d;--line:#293b56;--text:#edf5ff;--muted:#a8bad0;--blue:#38bdf8;--green:#34d399}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#162a45 0,#0b1220 55%);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);min-height:100vh;padding:20px 12px}
-.wrap{max-width:850px;margin:0 auto}.top{display:flex;align-items:center;gap:13px;margin:8px 0 20px}.logo{width:52px;height:52px;border-radius:17px;background:linear-gradient(135deg,#0284c7,#34d399);display:grid;place-items:center;font-size:25px;box-shadow:0 8px 30px #0284c733}.brand h1{font-size:clamp(22px,5vw,32px);margin:0;letter-spacing:.2px}.brand p{margin:3px 0;color:var(--muted);font-size:13px}.status{margin-left:auto;border:1px solid var(--line);border-radius:99px;padding:7px 10px;font-size:12px;color:var(--green);white-space:nowrap}
-.panel{background:#111d2eee;border:1px solid var(--line);border-radius:22px;padding:clamp(14px,4vw,24px);box-shadow:0 18px 50px #0003}.welcome h2{margin:0 0 6px;font-size:21px}.welcome p{margin:0;color:var(--muted);line-height:1.55}.quick{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.chip{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:8px 12px;color:#d9eaff;font-size:13px;cursor:pointer}.chat{display:flex;flex-direction:column;gap:12px;margin:18px 0;max-height:45vh;overflow:auto}.msg{max-width:95%;padding:12px 14px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}.user{align-self:flex-end;background:#075985}.assistant{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}.muted{color:var(--muted);font-size:12px}.compose{display:flex;gap:8px;align-items:stretch}.compose textarea{flex:1;min-width:0;resize:vertical;min-height:52px;max-height:150px;background:#0b1525;border:1px solid #38506e;color:var(--text);border-radius:14px;padding:14px;font:inherit;outline:none}.compose textarea:focus{border-color:var(--blue)}button{font:inherit;font-weight:650;cursor:pointer;border:0;border-radius:14px;padding:12px 15px;color:#041321;background:var(--blue)}button:disabled{opacity:.5;cursor:wait}.mic{background:var(--green);min-width:54px;font-size:20px}.voice-only{display:flex;justify-content:center;margin:18px 0}.voice-only .mic{width:min(100%,360px);min-height:78px;border-radius:24px;font-size:25px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 0 30px #34d39922}.voice-only .mic span{font-size:17px}.voice-only .mic.listening{background:#fb7185;color:#25040b;animation:pulse 1.1s infinite}.mic.listening{background:#fb7185;color:#25040b;animation:pulse 1.1s infinite}.secondary{background:#24364e;color:var(--text);border:1px solid var(--line)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{font-size:13px;padding:9px 12px}.note{margin-top:15px;color:var(--muted);font-size:12px;line-height:1.5}.login{max-width:430px;margin:12vh auto}.login input{width:100%;padding:13px;background:#0b1525;border:1px solid var(--line);border-radius:12px;color:white;margin:10px 0}.login button{width:100%}a{color:var(--blue)}@keyframes pulse{50%{box-shadow:0 0 0 7px #fb718533}}
-.hud{display:grid;grid-template-columns:minmax(150px, .9fr) 1.1fr;gap:18px;align-items:center;margin:20px 0;padding:16px;border:1px solid #1e4960;border-radius:20px;background:linear-gradient(135deg,#071723,#0c2030 65%,#0b1525);overflow:hidden}
-.radar{width:min(100%,230px);aspect-ratio:1;border-radius:50%;margin:auto;position:relative;border:1px solid #1c9ab5;background:repeating-radial-gradient(circle,transparent 0 20px,#15536a 21px 22px),linear-gradient(90deg,transparent 49.7%,#17485b 50%,transparent 50.3%),linear-gradient(transparent 49.7%,#17485b 50%,transparent 50.3%);box-shadow:0 0 28px #06b6d433,inset 0 0 24px #06b6d422}
-.radar:before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#22d3ee33 35deg,transparent 80deg);animation:scan 4s linear infinite}
-.radar:after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:#67e8f9;box-shadow:0 0 18px #22d3ee;left:50%;top:50%;transform:translate(-50%,-50%)}
-.core{position:absolute;inset:35%;border:1px solid #4bd6e7;border-radius:50%;display:grid;place-items:center;color:#b9fbff;font-weight:800;font-size:clamp(10px,2vw,15px);letter-spacing:2px;background:#092432aa}
-.huddata{min-width:0}.eyebrow{color:#67e8f9;font-size:11px;letter-spacing:2px;font-weight:800}.huddata h2{margin:6px 0;font-size:clamp(20px,4vw,30px)}.huddata p{color:var(--muted);font-size:13px;line-height:1.5}.meters{display:grid;gap:9px;margin-top:15px}.meter{height:5px;background:#193247;border-radius:9px;overflow:hidden}.meter span{display:block;height:100%;width:72%;background:linear-gradient(90deg,#0ea5e9,#5eead4);box-shadow:0 0 12px #22d3ee88;animation:meter 3s ease-in-out infinite alternate}.meter:nth-child(2) span{width:48%;animation-delay:.5s}.meter:nth-child(3) span{width:86%;animation-delay:1s}.systemline{display:flex;gap:7px;align-items:center;color:#8ca9bf;font-size:11px;margin-top:12px}.dot{width:7px;height:7px;background:#34d399;border-radius:50%;box-shadow:0 0 9px #34d399}
-@keyframes scan{to{transform:rotate(360deg)}}@keyframes meter{to{filter:brightness(1.5);width:95%}}
-@media(max-width:520px){.hud{grid-template-columns:1fr;text-align:center}.radar{width:190px}.systemline{justify-content:center}}
-@media(max-width:520px){body{padding:12px 9px}.status{font-size:10px}.compose{flex-wrap:wrap}.compose textarea{flex-basis:100%}.compose button{flex:1}.msg{max-width:100%}}
-</style></head><body><div class="wrap">
-<div class="top"><div class="logo">✦</div><div class="brand"><h1>SALIM AI</h1><p>Hausa • English • Voice Assistant</p></div><div class="status" id="status">● Ready</div></div>
-{% if not logged_in %}<div class="panel login"><h2>Shiga SALIM AI</h2><p class="muted">Saka kalmar sirrin dashboard.</p><form method="post" action="/login"><input type="password" name="password" placeholder="Dashboard password" required><button type="submit">Login</button></form></div>
-{% else %}<div class="panel"><div class="welcome"><h2>Sannu! Ina sauraro.</h2><p>Taɓa babban microphone ka yi magana da Hausa ko Turanci. SALIM AI zai saurara ya amsa da murya.</p></div>
-<section class="hud" aria-label="SALIM AI system status"><div class="radar"><div class="core">SALIM<br>AI</div></div><div class="huddata"><div class="eyebrow">PERSONAL AI SYSTEM</div><h2>Salim Intelligence</h2><p>Mai taimako ta murya. Ina sauraron umarninka.</p><div class="meters"><div class="meter"><span></span></div><div class="meter"><span></span></div><div class="meter"><span></span></div></div><div class="systemline"><span class="dot"></span><span id="systemState">SYSTEM ONLINE · VOICE READY</span></div></div></section>
-<div class="chat" id="chat" aria-live="polite"><div class="msg assistant">Ni ne SALIM AI. Taɓa microphone ka yi magana; zan amsa da murya.</div></div>
- <div class="voice-only"><button class="mic" id="mic" type="button" title="Taɓa ka yi magana" aria-label="Fara magana da microphone">🎙️ <span>Taɓa ka yi magana</span></button></div>
-<div class="actions"><button type="button" class="secondary" id="speakToggle">🔊 Amsar murya: ON</button><button type="button" class="secondary" id="clear">Share hira</button><form method="post" action="/logout" style="margin-left:auto"><button class="secondary" type="submit">Fita</button></form></div>
-<p class="note" id="voiceNote">Yanayin murya kawai: babu akwatin rubutu. Ka amince da izinin microphone idan browser ya tambaye ka. Idan ba ya aiki, gwada Chrome ta HTTPS.</p>
-{% endif %}</div></div>
-<script>
-const chat=document.getElementById('chat');
-if(chat){
- const mic=document.getElementById('mic'),status=document.getElementById('status'),speakToggle=document.getElementById('speakToggle');
- let speakOn=true,recognition=null,listening=false;
- function addMsg(text,who){const el=document.createElement('div');el.className='msg '+who;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;return el}
- function setStatus(s){status.textContent='● '+s;const state=document.getElementById('systemState');if(state)state.textContent=String(s).toUpperCase()}
- function speak(text){if(!speakOn||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=/[ƙɗɓƴ]/i.test(text)||/\b(ina|menene|yaya|na gode|bude|buɗe)\b/i.test(text)?'ha-NG':'en-NG';u.rate=1;window.speechSynthesis.speak(u)}
- async function sendMessage(text){text=(text||'').trim();if(!text)return;addMsg('🎙️ Umarninka: '+text,'user');setStatus('Ina tunani…');const waiting=addMsg('SALIM AI yana tunani…','assistant');try{const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});const data=await res.json();waiting.textContent=data.answer||data.error||'Ba a samu amsa ba.';speak(waiting.textContent);setStatus('Ready')}catch(e){waiting.textContent='An samu matsalar haɗi. Duba intanet sannan ka sake gwadawa.';setStatus('Connection error')}finally{setStatus('Ready')}}
- document.getElementById('clear').addEventListener('click',()=>{chat.innerHTML='';addMsg('An share hirar. Me zan taimaka maka?','assistant');if('speechSynthesis'in window)speechSynthesis.cancel()});
- speakToggle.addEventListener('click',()=>{speakOn=!speakOn;speakToggle.textContent='🔊 Amsar murya: '+(speakOn?'ON':'OFF');if(!speakOn&&'speechSynthesis'in window)speechSynthesis.cancel()});
- const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(SpeechRecognition){recognition=new SpeechRecognition();recognition.continuous=false;recognition.interimResults=true;recognition.lang='ha-NG';recognition.onstart=()=>{listening=true;mic.classList.add('listening');mic.textContent='⏹️';setStatus('Ina sauraro…')};recognition.onresult=e=>{let interim='',finalText='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)finalText+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}if(finalText){recognition.finalTranscript=finalText}};recognition.onerror=e=>{setStatus('Microphone: '+e.error);if(e.error==='not-allowed')document.getElementById('voiceNote').textContent='An hana microphone. Ka buɗe site settings na browser ka ba shi izinin Microphone.'};recognition.onend=()=>{listening=false;mic.classList.remove('listening');mic.textContent='🎙️';setStatus('Ready');const spoken=recognition.finalTranscript;recognition.finalTranscript='';if(spoken)sendMessage(spoken)};mic.addEventListener('click',()=>{if(listening){recognition.stop();return}try{recognition.finalTranscript='';recognition.lang='ha-NG';recognition.start()}catch(e){setStatus('Gwada sake dannawa')}})}else{mic.addEventListener('click',()=>{document.getElementById('voiceNote').textContent='Wannan browser ba ya goyon bayan gane magana. Ka gwada Chrome na zamani, ka tabbatar kana amfani da HTTPS, domin yin amfani da microphone.';setStatus('Voice unsupported')})}
-}
-</script></body></html>'''
-
-
-def is_logged_in():
-    return not PASSWORD or session.get("logged_in") is True
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
 
 @app.get("/")
-def index():
-    return render_template_string(HTML, logged_in=is_logged_in())
-
-@app.post("/login")
-def login():
-    if not PASSWORD or request.form.get("password", "") == PASSWORD:
-        session["logged_in"] = True
-        return redirect(url_for("index"))
-    return "Kalmar sirri ba daidai ba ce.", 401
-
-@app.post("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
+def home():
+    return render_template("index.html")
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok", service="SALIM AI dashboard")
+    return jsonify({"service": "SALIM AI TERMINAL", "status": "healthy", "mode": "local-no-api-key"})
 
 @app.post("/api/chat")
-def chat_api():
-    if not is_logged_in():
-        return jsonify(error="Da fatan za ka shiga dashboard da farko."), 401
+def chat():
     data = request.get_json(silent=True) or {}
     message = str(data.get("message", "")).strip()
+    language = str(data.get("language", "ha")).strip().lower()
     if not message:
-        return jsonify(error="Ka rubuta ko ka faɗi saƙo."), 400
-    if len(message) > 6000:
-        return jsonify(error="Saƙon ya yi tsawo. Ka rage shi."), 413
-    handled, result = handle_command(message)
-    if not handled:
-        result = ask_gemini([
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ])
-    # On Render, commands cannot launch native apps on the visitor's phone; return a safe clickable URL when available.
-    urls = re.findall(r"https?://[^\s<>]+", result)
-    return jsonify(answer=result, links=urls[:3])
+        return jsonify({"ok": False, "reply": "Ban ji tambayarka ba. Ka sake magana.", "mode": "local"}), 400
+    if len(message) > 2000:
+        return jsonify({"ok": False, "reply": "Maganarka ta yi tsawo. Ka taƙaita ta, don Allah.", "mode": "local"}), 413
+    reply = local_reply(message, language)
+    return jsonify({"ok": True, "reply": reply, "mode": "local-no-api-key"})
+
+@app.errorhandler(404)
+def not_found(_error):
+    return jsonify({"ok": False, "error": "Ba a sami wannan adireshin ba."}), 404
+
+@app.errorhandler(500)
+def server_error(_error):
+    return jsonify({"ok": False, "error": "An samu matsalar cikin server."}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
+    port = int(os.environ.get("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port, debug=False)
