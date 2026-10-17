@@ -1,0 +1,13 @@
+SALIM AI V5.0 — TERMUX
+
+1. pkg update && pkg install python
+2. Cire ZIP, sannan ka shiga folder SALIM-AI-V5.0-COMPLETE.
+3. python -m venv .venv
+4. source .venv/bin/activate
+5. pip install -r requirements.txt
+6. cp .env.example .env && nano .env
+7. Saka GEMINI_API_KEY naka cikin .env; kada ka turo wa kowa key ɗin.
+8. python webapp.py
+9. Buɗe browser zuwa http://127.0.0.1:8080
+
+Idan API ta gaza, duba sakon da ya bayyana a chat da kuma terminal.
