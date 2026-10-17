@@ -11,7 +11,7 @@ init_db()
 def home(): return render_template('index.html', app_name=os.getenv('APP_NAME','SALIM AI'))
 @app.get('/health')
 def health():
- return jsonify({'service':'SALIM AI','status':'healthy','version':'5.0.0','ai_provider':'Google Gemini','api_key_configured':bool(os.getenv('GEMINI_API_KEY','').strip()),'model':os.getenv('GEMINI_MODEL','gemini-2.5-flash'),'timestamp':datetime.now(timezone.utc).isoformat()})
+ return jsonify({'service':'SALIM AI','status':'healthy','version':'5.1.0','ai_provider':'Google Gemini','api_key_configured':bool(os.getenv('GEMINI_API_KEY','').strip()),'model':os.getenv('GEMINI_MODEL','gemini-2.5-flash'),'timestamp':datetime.now(timezone.utc).isoformat()})
 @app.post('/api/chat')
 def chat():
  data=request.get_json(silent=True) or {}; message=str(data.get('message','')).strip()
